@@ -250,7 +250,7 @@ bool main_window::Init([[maybe_unused]] bool with_cli_boot)
 	{
 		const bool in_background = with_cli_boot || update_value == gui::update_bkg;
 		const bool auto_accept   = !in_background && update_value == gui::update_auto;
-		m_updater.check_for_updates(true, in_background, auto_accept, this);
+		//m_updater.check_for_updates(true, in_background, auto_accept, this);
 	}
 #endif
 
@@ -3092,7 +3092,7 @@ void main_window::CreateConnects()
 		QMessageBox::warning(this, tr("Auto-updater"), tr("The auto-updater isn't available for your OS currently."));
 		return;
 #endif
-		m_updater.check_for_updates(false, false, false, this);
+		//m_updater.check_for_updates(false, false, false, this);
 	});
 
 	connect(ui->welcomeAct, &QAction::triggered, this, [this]()

@@ -1,6 +1,8 @@
 // Qt6 frontend implementation for rpcs3. Known to work on Windows, Linux, Mac
 // by Sacha Refshauge, Megamouse and flash-fire
 
+#include <fstream> //RTC_Hijack: include these for the gameinfo writing
+#include <string>  //RTC_Hijack: include these for the gameinfo writing
 #include <iostream>
 #include <chrono>
 #include <clocale>
@@ -80,8 +82,18 @@ namespace Darwin_Version
 #include "Emu/system_utils.hpp"
 #include <thread>
 #include <charconv>
+#include <Crypto\unself.h> // RTC_Hijack: include unself.h so decryption via command line is possible
+#include <Emu\GameInfo.h>  // RTC_Hijack: include game info header
+#include <Emu\system_utils.hpp>
+#include "Loader/PSF.h"    // RTC_Hijack: include PSF
+#include <filesystem>      // RTC_Hijack: include filesystem for reading filepaths
 
 #include "util/sysinfo.hpp"
+
+inline std::string sstr(const QString& _in)
+{
+	return _in.toStdString();
+}
 
 // Let's initialize the locale first
 static const bool s_init_locale = []()
@@ -323,6 +335,7 @@ constexpr auto arg_timer        = "high-res-timer";
 constexpr auto arg_verbose_curl = "verbose-curl";
 constexpr auto arg_any_location = "allow-any-location";
 constexpr auto arg_codecs       = "codecs";
+constexpr auto arg_getgameinfo  = "getgameinfo"; //RTC_Hijack: add command line arg to get a game's info
 
 #ifdef _WIN32
 constexpr auto arg_stdout       = "stdout";
@@ -695,6 +708,8 @@ int main(int argc, char** argv)
 	parser.addOption(installpkg_option);
 	const QCommandLineOption decrypt_option(arg_decrypt, "Decrypt PS3 binaries.", "path(s)", "");
 	parser.addOption(decrypt_option);
+	const QCommandLineOption gameinfo_option(arg_getgameinfo, "Automatically output a game's game info to a txt file."); //RTC_Hijack: Describe getgameinfo
+	parser.addOption(gameinfo_option);
 	const QCommandLineOption user_id_option(arg_user_id, "Start RPCS3 as this user.", "user id", "");
 	parser.addOption(user_id_option);
 	const QCommandLineOption savestate_option(arg_savestate, "Path for directly loading a savestate.", "path", "");
@@ -1291,84 +1306,140 @@ int main(int argc, char** argv)
 			}
 		});
 	}
-	else if (const QStringList args = parser.positionalArguments(); !args.isEmpty() && !is_updating && !parser.isSet(arg_installfw) && !parser.isSet(arg_installpkg))
+	else if (const QStringList args = parser.positionalArguments(); !args.isEmpty() && !is_updating)
 	{
 		const std::string spath = ::at32(args, 0).toStdString();
-
-		if (spath.starts_with(Emulator::vfs_boot_prefix))
+		if (!parser.isSet(arg_installfw) && !parser.isSet(arg_installpkg))
 		{
-			sys_log.notice("Booting application from command line using VFS path: %s", spath.substr(Emulator::vfs_boot_prefix.size()));
-		}
-		else if (spath.starts_with(Emulator::game_id_boot_prefix))
-		{
-			sys_log.notice("Booting application from command line using GAMEID: %s", spath.substr(Emulator::game_id_boot_prefix.size()));
-		}
-		else
-		{
-			sys_log.notice("Booting application from command line: %s", spath);
-		}
+			
 
-		// Propagate command line arguments
-		std::vector<std::string> rpcs3_argv;
-
-		if (args.length() > 1)
-		{
-			rpcs3_argv.emplace_back();
-
-			for (int i = 1; i < args.length(); i++)
+			if (spath.starts_with(Emulator::vfs_boot_prefix))
 			{
-				const std::string arg = args[i].toStdString();
-				rpcs3_argv.emplace_back(arg);
-				sys_log.notice("Optional command line argument %d: %s", i, arg);
+				sys_log.notice("Booting application from command line using VFS path: %s", spath.substr(Emulator::vfs_boot_prefix.size()));
+			}
+			else if (spath.starts_with(Emulator::game_id_boot_prefix))
+			{
+				sys_log.notice("Booting application from command line using GAMEID: %s", spath.substr(Emulator::game_id_boot_prefix.size()));
+			}
+			else
+			{
+				sys_log.notice("Booting application from command line: %s", spath);
 			}
 		}
-
-		std::string config_path;
-
-		if (parser.isSet(arg_config))
+		// RTC_Hijack: Implement arguments for gameinfo getting
+		if(parser.isSet(arg_getgameinfo))
 		{
-			config_path = parser.value(config_option).toStdString();
-
-			if (!fs::is_file(config_path))
+			// assume the user wll pick the game FOLDER (which includes PS3-GAME and the SFB file), not its eboot
+			std::string dir = (sstr(QFileInfo(parser.positionalArguments().at(0)).absoluteFilePath()));
+			sys_log.notice("Game Directory: %s", dir);
+			std::string sfo_dir = rpcs3::utils::get_sfo_dir_from_game_path(dir, "");
+			std::string hgsfodir;
+			fs::file sfo_file(sfo_dir + "/PARAM.SFO");
+			fs::file hgsfofile;
+			if (!fs::is_dir(sfo_dir))
 			{
-				report_fatal_error(fmt::format("No config file found: %s", config_path));
+				hgsfodir = dir;
+				hgsfofile = fs::file(hgsfodir + "/PARAM.SFO");
 			}
+			if (!sfo_file && !hgsfofile)
+			{
+				sys_log.notice("ERROR: Could not find SFO file! Attempted filename location: %s", (sfo_dir + "/PARAM.SFO"));
+				return 0;
+			}
+			GameInfo game;
+			psf::registry psf;
+			if (sfo_file)
+				psf = psf::load_object(sfo_file, sfo_dir);
+			if (hgsfofile)
+				psf = psf::load_object(hgsfofile, hgsfodir);
+			game.path = dir;
+			game.icon_path = sfo_dir + "/ICON0.PNG";
+			game.serial = std::string(psf::get_string(psf, "TITLE_ID", ""));
+			game.name = std::string(psf::get_string(psf, "TITLE"));
+			game.app_ver = std::string(psf::get_string(psf, "APP_VER"));
+			game.version = std::string(psf::get_string(psf, "VERSION"));
+			game.category = std::string(psf::get_string(psf, "CATEGORY"));
+			game.fw = std::string(psf::get_string(psf, "PS3_SYSTEM_VER"));
+			game.parental_lvl = psf::get_integer(psf, "PARENTAL_LEVEL", 0);
+			game.resolution = psf::get_integer(psf, "RESOLUTION", 0);
+			game.sound_format = psf::get_integer(psf, "SOUND_FORMAT", 0);
+			game.bootable = psf::get_integer(psf, "BOOTABLE", 0);
+			game.attr = psf::get_integer(psf, "ATTRIBUTE", 0);
+			std::string serialnumber = game.serial;
+			std::ofstream file(dir + "\\gameinfo.txt");
+			sys_log.notice("Attempted txt file location: %s", (dir + "/gameinfo.txt"));
+			if (sfo_dir.ends_with("/C00"))
+			{
+				sfo_dir.erase(sfo_dir.end()-3, sfo_dir.end());
+			}
+			std::string outputText = "NAME$$" + game.name + "\nSERIAL$$" + game.serial + "\nVERSION$$" + game.app_ver + "\nTYPE$$" + game.category + "\nPATH$$" + game.path + "\nUSRDIRPATH$$" + sfo_dir + "\nEBOOTPATH$$" + sfo_dir + "/USRDIR/EBOOT.BIN";
+
+			file << outputText;
+
+			//return 0;
 		}
+			// Propagate command line arguments
+			std::vector<std::string> rpcs3_argv;
 
-		if (parser.isSet(arg_input_config))
-		{
-			if (!s_no_gui)
+			if (args.length() > 1)
 			{
-				report_fatal_error(fmt::format("The option '%s' can only be used in combination with '%s'.", arg_input_config, arg_no_gui));
-			}
+				rpcs3_argv.emplace_back();
 
-			g_input_config_override = parser.value(input_config_option).toStdString();
-
-			if (g_input_config_override.empty())
-			{
-				report_fatal_error(fmt::format("Input config file name is empty"));
-			}
-		}
-
-		// Postpone startup to main event loop
-		Emu.CallFromMainThread([path = spath.starts_with("%RPCS3_") ? spath : QFileInfo(::at32(args, 0)).absoluteFilePath().toStdString(), rpcs3_argv = std::move(rpcs3_argv), config_path = std::move(config_path)]() mutable
-		{
-			Emu.argv = std::move(rpcs3_argv);
-			Emu.SetForceBoot(true);
-
-			const cfg_mode config_mode = config_path.empty() ? cfg_mode::custom : cfg_mode::config_override;
-
-			if (const game_boot_result error = Emu.BootGame(path, "", false, config_mode, config_path); error != game_boot_result::no_errors)
-			{
-				sys_log.error("Booting '%s' with cli argument failed: reason: %s", path, error);
-
-				if (s_headless || s_no_gui)
+				for (int i = 1; i < args.length(); i++)
 				{
-					report_fatal_error(fmt::format("Booting '%s' failed!\n\nReason: %s", path, error));
+					const std::string arg = args[i].toStdString();
+					rpcs3_argv.emplace_back(arg);
+					sys_log.notice("Optional command line argument %d: %s", i, arg);
 				}
 			}
-		});
+
+			std::string config_path;
+
+			if (parser.isSet(arg_config))
+			{
+				config_path = parser.value(config_option).toStdString();
+
+				if (!fs::is_file(config_path))
+				{
+					report_fatal_error(fmt::format("No config file found: %s", config_path));
+				}
+			}
+
+			if (parser.isSet(arg_input_config))
+			{
+				if (!s_no_gui)
+				{
+					report_fatal_error(fmt::format("The option '%s' can only be used in combination with '%s'.", arg_input_config, arg_no_gui));
+				}
+
+				g_input_config_override = parser.value(input_config_option).toStdString();
+
+				if (g_input_config_override.empty())
+				{
+					report_fatal_error(fmt::format("Input config file name is empty"));
+				}
+			}
+
+			// Postpone startup to main event loop
+			Emu.CallFromMainThread([path = spath.starts_with("%RPCS3_") ? spath : QFileInfo(::at32(args, 0)).absoluteFilePath().toStdString(), rpcs3_argv = std::move(rpcs3_argv), config_path = std::move(config_path)]() mutable
+			{
+				Emu.argv = std::move(rpcs3_argv);
+				Emu.SetForceBoot(true);
+
+				const cfg_mode config_mode = config_path.empty() ? cfg_mode::custom : cfg_mode::config_override;
+
+				if (const game_boot_result error = Emu.BootGame(path, "", false, config_mode, config_path); error != game_boot_result::no_errors)
+				{
+					sys_log.error("Booting '%s' with cli argument failed: reason: %s", path, error);
+
+					if (s_headless || s_no_gui)
+					{
+						report_fatal_error(fmt::format("Booting '%s' failed!\n\nReason: %s", path, error));
+					}
+				}
+			});
 	}
+
 	else if (s_headless || s_no_gui)
 	{
 		// If launched from CMD

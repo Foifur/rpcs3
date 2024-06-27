@@ -1672,7 +1672,7 @@ bool handle_access_violation(u32 addr, bool is_writing, ucontext_t* context) noe
 			// TODO:
 			// RawSPU: Send appropriate interrupt
 			// SPUThread: Send sys_spu exception event
-			cpu->state += cpu_flag::dbg_pause;
+			//cpu->state += cpu_flag::dbg_pause;
 
 			if (cpu->check_state() && !hack_alloc())
 			{
@@ -1685,10 +1685,10 @@ bool handle_access_violation(u32 addr, bool is_writing, ucontext_t* context) noe
 		{
 			if (auto last_func = static_cast<ppu_thread*>(cpu)->current_function)
 			{
-				ppu_log.fatal("Function aborted: %s", last_func);
+				//ppu_log.fatal("Function aborted: %s", last_func);
 			}
 
-			lv2_obj::sleep(*cpu);
+			//lv2_obj::sleep(*cpu);
 		}
 	}
 
@@ -1697,7 +1697,7 @@ bool handle_access_violation(u32 addr, bool is_writing, ucontext_t* context) noe
 		cpu->state += cpu_flag::wait;
 	}
 
-	Emu.Pause(true);
+	//Emu.Pause(true);
 
 	if (!g_tls_access_violation_recovered)
 	{
@@ -1708,12 +1708,12 @@ bool handle_access_violation(u32 addr, bool is_writing, ucontext_t* context) noe
 	// Do not log any further access violations in this case.
 	if (!g_tls_access_violation_recovered)
 	{
-		vm_log.fatal("Access violation %s location 0x%x (%s)", is_writing ? "writing" : (cpu && cpu->get_class() == thread_class::ppu && cpu->get_pc() == addr ? "executing" : "reading"), addr, (is_writing && vm::check_addr(addr)) ? "read-only memory" : "unmapped memory");
+		//vm_log.fatal("Access violation %s location 0x%x (%s)", is_writing ? "writing" : (cpu && cpu->get_class() == thread_class::ppu && cpu->get_pc() == addr ? "executing" : "reading"), addr, (is_writing && vm::check_addr(addr)) ? "read-only memory" : "unmapped memory");
 	}
 
 	while (Emu.IsPaused())
 	{
-		thread_ctrl::wait();
+		//thread_ctrl::wait();
 	}
 
 	if (Emu.IsStopped() && !hack_alloc())
@@ -1721,7 +1721,7 @@ bool handle_access_violation(u32 addr, bool is_writing, ucontext_t* context) noe
 		return false;
 	}
 
-	return true;
+	return true;//RTC_Hijack end
 }
 
 static void append_thread_name(std::string& msg)

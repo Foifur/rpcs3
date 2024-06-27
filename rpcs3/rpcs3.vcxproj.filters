@@ -285,14 +285,8 @@
     <ClCompile Include="QTGeneratedFiles\Release\moc_welcome_dialog.cpp">
       <Filter>Generated Files\Release</Filter>
     </ClCompile>
-    <ClCompile Include="QTGeneratedFiles\Debug\moc_basic_mouse_settings_dialog.cpp">
-      <Filter>Generated Files\Debug</Filter>
-    </ClCompile>
     <ClCompile Include="QTGeneratedFiles\Release\moc_basic_mouse_settings_dialog.cpp">
       <Filter>Generated Files\Release</Filter>
-    </ClCompile>
-    <ClCompile Include="QTGeneratedFiles\Debug\moc_raw_mouse_settings_dialog.cpp">
-      <Filter>Generated Files\Debug</Filter>
     </ClCompile>
     <ClCompile Include="QTGeneratedFiles\Release\moc_raw_mouse_settings_dialog.cpp">
       <Filter>Generated Files\Release</Filter>
@@ -1086,6 +1080,12 @@
     <ClCompile Include="Input\raw_mouse_config.cpp">
       <Filter>Io\raw</Filter>
     </ClCompile>
+    <ClCompile Include="QTGeneratedFiles\Debug\moc_basic_mouse_handler_dialog.cpp">
+      <Filter>Generated Files\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="QTGeneratedFiles\Debug\moc_raw_mouse_handler_dialog.cpp">
+      <Filter>Generated Files\Debug</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Input\ds4_pad_handler.h">
@@ -1268,14 +1268,11 @@
     <ClInclude Include="util\console.h">
       <Filter>rpcs3</Filter>
     </ClInclude>
-    <ClInclude Include="rpcs3qt\basic_mouse_settings_dialog.h">
-      <Filter>Gui\settings</Filter>
-    </ClInclude>
-    <ClInclude Include="rpcs3qt\raw_mouse_settings_dialog.h">
-      <Filter>Gui\settings</Filter>
-    </ClInclude>
     <ClInclude Include="Input\raw_mouse_config.h">
       <Filter>Io\raw</Filter>
+    </ClInclude>
+    <ClInclude Include="main.h">
+      <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1581,6 +1578,12 @@
     </CustomBuild>
     <CustomBuild Include="rpcs3qt\midi_creator.h">
       <Filter>Gui\settings</Filter>
+    </CustomBuild>
+    <CustomBuild Include="rpcs3qt\basic_mouse_settings_dialog.h">
+      <Filter>Generated Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="rpcs3qt\raw_mouse_settings_dialog.h">
+      <Filter>Generated Files</Filter>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>

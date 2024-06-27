@@ -949,6 +949,7 @@
     <ClInclude Include="Input\raw_mouse_handler.h" />
     <ClInclude Include="Input\sdl_pad_handler.h" />
     <ClInclude Include="Input\skateboard_pad_handler.h" />
+    <ClInclude Include="main.h" />
     <ClInclude Include="main_application.h" />
     <ClInclude Include="Input/mm_joystick_handler.h" />
     <CustomBuild Include="rpcs3qt\cg_disasm_window.h">
@@ -1977,7 +1978,7 @@
   <ImportGroup Label="ExtensionTargets" />
   <ProjectExtensions>
     <VisualStudio>
-      <UserProperties MocDir=".\QTGeneratedFiles\$(ConfigurationName)" Qt5Version_x0020_x64="$(DefaultQtVersion)" RccDir=".\QTGeneratedFiles" UicDir=".\QTGeneratedFiles" />
+      <UserProperties MocDir=".\QTGeneratedFiles\$(ConfigurationName)" Qt5Version_x0020_x64="6.6.3_msvc2019_64" RccDir=".\QTGeneratedFiles" UicDir=".\QTGeneratedFiles" />
     </VisualStudio>
   </ProjectExtensions>
 </Project>
