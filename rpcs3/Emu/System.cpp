@@ -3783,7 +3783,7 @@ void Emulator::ConfigurePPUCache() const
 			fmt::append(new_filename, "%sppu-%s-%s/", current_path, fmt::base57(_main.sha1), _main.path.substr(_main.path.find_last_of('/') + 1));
 			
 			std::filesystem::rename(entry, new_filename);
-			std::cout << "updated cache name";
+			sys_log.notice("found previously compiled cache folder");
 		}
 	}
 		
