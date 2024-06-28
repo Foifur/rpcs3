@@ -871,10 +871,14 @@ game_boot_result Emulator::GetElfPathFromDir(std::string& elf_path, const std::s
 
 	static const char* boot_list[] =
 	{
-		"/EBOOT.BIN",
-		"/USRDIR/EBOOT.BIN",
-		"/USRDIR/ISO.BIN.EDAT",
-		"/PS3_GAME/USRDIR/EBOOT.BIN",
+		//RTC_Hijack: only boot ELF files
+		//"/EBOOT.BIN",
+		//"/USRDIR/EBOOT.BIN",
+		//"/USRDIR/ISO.BIN.EDAT",
+		//"/PS3_GAME/USRDIR/EBOOT.BIN",
+		"/EBOOT.elf",
+		"/USRDIR/EBOOT.elf",
+		"/PS3_GAME/USRDIR/EBOOT.elf"
 	};
 
 	for (std::string elf : boot_list)

@@ -1428,6 +1428,48 @@ int main(int argc, char** argv)
 
 				const cfg_mode config_mode = config_path.empty() ? cfg_mode::custom : cfg_mode::config_override;
 
+				//RTC_Hijack: automatically decrypt ELF file
+				std::filesystem::path elf_check(path + "/USRDIR/EBOOT.elf");
+				if (!std::filesystem::exists(elf_check))
+				{
+					std::vector<std::string> elf_path;
+					elf_path.push_back(path);
+					std::shared_ptr<decrypt_binaries_t> decrypter = std::make_shared<decrypt_binaries_t>(std::move(elf_path));
+
+					usz mod_index = decrypter->decrypt();
+					usz repeat_count = mod_index == 0 ? 1 : 0;
+
+					while (!decrypter->done())
+					{
+						const std::string& path = (*decrypter)[mod_index];
+						const std::string filename = path.substr(path.find_last_of(fs::delim) + 1);
+
+						const std::string hint = fmt::format("Hint: KLIC (KLicense key) is a 16-byte long string. (32 hexadecimal characters)"
+															 "\nAnd is logged with some sceNpDrm* functions when the game/application which owns \"%0\" is running.",
+							filename);
+
+						if (repeat_count >= 2)
+						{
+							// std::cout << "Failed to decrypt " << path << " with specfied KLIC, retrying.\n"
+						    //		  << hint << std::endl;
+						}
+
+						// std::cout << "Enter KLIC of " << filename << "\nHexadecimal only, 32 characters:" << std::endl;
+
+						std::string input;
+						// std::cin >> input;
+
+						if (input.empty())
+						{
+							break;
+						}
+
+						const usz new_index = decrypter->decrypt(input);
+						repeat_count = new_index == mod_index ? repeat_count + 1 : 0;
+						mod_index = new_index;
+					}
+				}
+
 				if (const game_boot_result error = Emu.BootGame(path, "", false, config_mode, config_path); error != game_boot_result::no_errors)
 				{
 					sys_log.error("Booting '%s' with cli argument failed: reason: %s", path, error);
